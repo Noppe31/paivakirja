@@ -1,6 +1,112 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_MERKINNAT 100
+#define MAX_PITUUS 256
+
+typedef struct {
+    char teksti[MAX_PITUUS];
+} Merkinta;
+
+static void lue_rivi(const char *kehote, char *kohde, size_t koko) {
+    printf("%s", kehote);
+
+    if (fgets(kohde, (int)koko, stdin) == NULL) {
+        kohde[0] = '\0';
+        return;
+    }
+
+    kohde[strcspn(kohde, "\n")] = '\0';
+}
+
+static int lue_numero(const char *kehote) {
+    char syote[32];
+    char *loppu;
+    long numero;
+
+    lue_rivi(kehote, syote, sizeof syote);
+    numero = strtol(syote, &loppu, 10);
+
+    if (loppu == syote || *loppu != '\0') {
+        return -1;
+    }
+
+    return (int)numero;
+}
+
+static void listaa_merkinnat(const Merkinta merkinnat[], int maara) {
+    if (maara == 0) {
+        printf("Ei merkintoja.\n");
+        return;
+    }
+
+    printf("\n--- Merkinnat ---\n");
+    for (int i = 0; i < maara; i++) {
+        printf("%d. %s\n", i + 1, merkinnat[i].teksti);
+    }
+}
+
+static void lisaa_merkinta(Merkinta merkinnat[], int *maara) {
+    if (*maara >= MAX_MERKINNAT) {
+        printf("Merkintojen enimm ais maara on saavutettu.\n");
+        return;
+    }
+
+    lue_rivi("Kirjoita merkinta: ", merkinnat[*maara].teksti, MAX_PITUUS);
+    if (merkinnat[*maara].teksti[0] == '\0') {
+        printf("Tyhjaa merkintaa ei lisatty.\n");
+        return;
+    }
+
+    (*maara)++;
+    printf("Merkinta lisatty.\n");
+}
+
+static int valitse_merkinta(const Merkinta merkinnat[], int maara) {
+    int numero;
+
+    listaa_merkinnat(merkinnat, maara);
+    if (maara == 0) {
+        return -1;
+    }
+
+    numero = lue_numero("Valitse merkinnan numero: ");
+    if (numero < 1 || numero > maara) {
+        printf("Virheellinen merkinnan numero.\n");
+        return -1;
+    }
+
+    return numero - 1;
+}
+
+static void muokkaa_merkintaa(Merkinta merkinnat[], int maara) {
+    int indeksi = valitse_merkinta(merkinnat, maara);
+    if (indeksi < 0) {
+        return;
+    }
+
+    lue_rivi("Kirjoita uusi teksti: ", merkinnat[indeksi].teksti, MAX_PITUUS);
+    printf("Merkinta muokattu.\n");
+}
+
+static void poista_merkinta(Merkinta merkinnat[], int *maara) {
+    int indeksi = valitse_merkinta(merkinnat, *maara);
+    if (indeksi < 0) {
+        return;
+    }
+
+    for (int i = indeksi; i < *maara - 1; i++) {
+        merkinnat[i] = merkinnat[i + 1];
+    }
+
+    (*maara)--;
+    printf("Merkinta poistettu.\n");
+}
 
 int main(void) {
+    Merkinta merkinnat[MAX_MERKINNAT];
+    int maara = 0;
     int valinta;
 
     do {
@@ -10,31 +116,21 @@ int main(void) {
         printf("3. Muokkaa merkintaa\n");
         printf("4. Poista merkinta\n");
         printf("5. Lopeta\n");
-        printf("Valitse toiminto (1-5): ");
 
-        if (scanf("%d", &valinta) != 1) {
-            printf("Virheellinen valinta. Anna numero 1-5.\n");
-
-            int ch;
-            while ((ch = getchar()) != '\n' && ch != EOF) {
-            }
-
-            valinta = 0;
-            continue;
-        }
+        valinta = lue_numero("Valitse toiminto (1-5): ");
 
         switch (valinta) {
             case 1:
-                printf("Valitsit: Lisaa merkinta.\n");
+                lisaa_merkinta(merkinnat, &maara);
                 break;
             case 2:
-                printf("Valitsit: Tarkastele/listaa merkinnat.\n");
+                listaa_merkinnat(merkinnat, maara);
                 break;
             case 3:
-                printf("Valitsit: Muokkaa merkintaa.\n");
+                muokkaa_merkintaa(merkinnat, maara);
                 break;
             case 4:
-                printf("Valitsit: Poista merkinta.\n");
+                poista_merkinta(merkinnat, &maara);
                 break;
             case 5:
                 printf("Ohjelma suljetaan.\n");
@@ -43,11 +139,6 @@ int main(void) {
                 printf("Virheellinen valinta. Valitse numero 1-5.\n");
                 break;
         }
-
-        if (valinta != 5) {
-            printf("Palaa paavalikkoon.\n");
-        }
-
     } while (valinta != 5);
 
     return 0;
